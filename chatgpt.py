@@ -2,7 +2,26 @@
 
 import os, argparse, re
 from os.path import dirname, basename
+import copy
+
+# for トークン解析
+import tiktoken
+
+# for 要約
+from pysummarization.nlpbase.auto_abstractor import AutoAbstractor
+from pysummarization.tokenizabledoc.mecab_tokenizer import MeCabTokenizer
+from pysummarization.abstractabledoc.top_n_rank_abstractor import TopNRankAbstractor
+
+# for 類似性フィルター
+from pysummarization.nlp_base import NlpBase
+from pysummarization.similarityfilter.tfidf_cosine import TfIdfCosine
+
+# for OpenAI
 from openai import OpenAI
+
+
+# OpenAI のトークン数の上限 4096 を基準に，要約処理をする閾値
+LIMIT_TOKEN_COUNT_TO_ABST = 4096 * 0.8
 
 
 # 引数解析
@@ -49,11 +68,13 @@ for i in args.input:
 comment = comment.strip(' ')
 
 
+# 引数でコメントが無かったら，コメントの入力を要求
 while comment == '':
   print('Input comment.')
   comment = input()
 
-# 質問を表示
+
+# コメントを表示
 print(comment)
 
 
@@ -82,9 +103,71 @@ for h in history.split("\n"):
 if role != '' and content != '':
   msg.append({'role': role, 'content': content.rstrip()})
 
+# 以降では msg は要約される可能性があるので，オリジナルのメッセージを保存
+msg_orig = copy.deepcopy(msg)
+
+
+# トークン数を計測
+encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
+token_count = 0
+message_all = ''
+
+for m in msg:
+  message_all += m['content']
+  token_count += len(encoding.encode(m['content']))
+
+
+# トークン数が要約をする閾値を越えていたら要約を実施
+if token_count > LIMIT_TOKEN_COUNT_TO_ABST:
+  # 自動要約のオブジェクトを生成
+  auto_abst = AutoAbstractor()
+  # トークナイザー（単語分割）にMeCabを指定
+  auto_abst.tokenizable_doc = MeCabTokenizer()
+  # 文書の区切り文字を指定
+  auto_abst.delimiter_list = ["\n"]
+  # キュメントの抽象化、フィルタリングを行うオブジェクトを生成
+  abst_doc = TopNRankAbstractor()
+  
+  # NLPのオブジェクト
+  nlp_base = NlpBase()
+  nlp_base.tokenizable_doc = MeCabTokenizer()
+  # 類似性フィルター生成
+  similarity_filter = TfIdfCosine()
+  # NLPのオブジェクトを設定
+  similarity_filter.nlp_base = nlp_base
+  # 類似性の閾値設定
+  similarity_filter.similarity_limit = 0.25
+  
+  
+  # まずは各メッセージについて要約を実施
+  abst_token_count = 0
+  for i in range(len(msg)):
+    # 各メッセージをできるだけ簡潔にするために類似性フィルターを適用
+    message_abst = auto_abst.summarize(msg[i]['content'], abst_doc, similarity_filter)
+    msg_abst = ''
+    for a in message_abst['summarize_result']:
+      msg_abst += a
+  
+    abst_token_count += len(encoding.encode(msg_abst))
+    
+    msg[i]['content'] = msg_abst
+  
+  
+  # 各メッセージを要約した結果，まだトークン数が閾値を越えていたら全メッセージの要約を作成
+  if abst_token_count > LIMIT_TOKEN_COUNT_TO_ABST:
+    # 全メッセージの場合は比較的余裕があるはずなので類似性フィルターは適用しない
+    # (全メッセージのトークン数によっては類似性フィルターが必要になるかも…)
+    all_abst = auto_abst.summarize(message_all, abst_doc)
+    msg_abst = ''
+    for a in all_abst['summarize_result']:
+      msg_abst += a        
+    
+    msg = [{'role': 'assistant', 'content': msg_abst}]
+
 
 # メッセージに，新規の質問を追加
 msg.append({"role": "user", "content": comment})
+msg_orig.append({"role": "user", "content": comment})
 
 
 # ChatGPT に質問
@@ -101,13 +184,14 @@ ans = response.choices[0].message.content
 print('')
 print(ans)
 
-# 回答をメッセージに追加
-msg.append({"role": "assistant", "content": ans})
+
+# オリジナルのメッセージに回答を追加
+msg_orig.append({"role": "assistant", "content": ans})
 
 
 # 履歴を保存
 if args.no_write == False:
   with open(history_path, 'w') as f:
-    for m in msg:
+    for m in msg_orig:
       hist = '@@@role:::\n' + m['role'] + '\n' + '@@@content:::\n' + m['content'].rstrip() + '\n' + '\n'
       f.write(hist)
