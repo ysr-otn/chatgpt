@@ -1,0 +1,14 @@
+#+STARTUP: showall
+#+TITLE: chatgpt
+#+AUTHOR: 大谷 欽洋
+#+OPTIONS: ^:{}
+
+* 概要
+
+- OpenAI の ChatGPT に履歴付きでコマンドラインでアクセスする python スクリプト
+
+
+* 変更履歴
+
+- <2024-02-11 Sun 10:10>
+  - 新規作成
