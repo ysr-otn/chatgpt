@@ -27,6 +27,40 @@ LIMIT_TOKEN_COUNT_TO_ABST = 4096 * 0.8
 UNABST_RATE = 0.1
 
 
+# 各メッセージのトークン数をリストで返す
+# - msg: OpenAI クライアントの messages 形式のリスト
+def count_each_messages_token(msg):
+  count_tbl = []
+  for m in msg:
+    count = len(encoding.encode(m['content']))
+    count_tbl.append(count)
+  return count_tbl
+
+# AutoAbstractor() の要約の結果のテキストを結合する
+# - abst: AutoAbstractor().summarize()
+def concat_abst_text(abst):
+  text = ''
+  for a in abst['summarize_result']:
+    text += a
+  return text
+  
+
+# 各メッセージの content を要約を作成して置き換え
+# - msg: OpenAI クライアントの messages 形式のリスト
+def make_abst_each_messages(msg, aut_abst, abst_doc, sim_fil):
+  for i in range(len(msg)):
+    msg[i]['content'] = concat_abst_text( auto_abst.summarize(msg[i]['content'], abst_doc, sim_fil) )
+
+
+# 各メッセージの content を結合する
+# - msg: OpenAI クライアントの messages 形式のリスト
+def concat_each_messages_content(msg):
+  text = ''
+  for m in msg:
+    text += m['content']
+  return text
+
+
 # 引数解析
 parser = argparse.ArgumentParser(description='Input comment.')
 parser.add_argument('input', nargs = '*')
@@ -112,17 +146,7 @@ msg_orig = copy.deepcopy(msg)
 
 # トークン数を計測
 encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
-token_count = 0
-token_count_tbl = []
-message_all = ''
-
-for m in msg:
-  message_all += m['content']
-  t = len(encoding.encode(m['content']))
-  token_count += t
-  token_count_tbl.append(t)
-  
-
+token_count = sum(count_each_messages_token(msg))
 
 # トークン数が要約をする閾値を越えていたら要約を実施
 if token_count > LIMIT_TOKEN_COUNT_TO_ABST:
@@ -148,32 +172,19 @@ if token_count > LIMIT_TOKEN_COUNT_TO_ABST:
   
   # まずは先頭から old_msg_count 個のメッセージについて要約を実施
   old_msg_count = int(len(msg) * (1 - UNABST_RATE))
-  abst_token_count = 0
-  old_msg_abst_all = ''
-  for i in range(old_msg_count):
-    # 各メッセージをできるだけ簡潔にするために類似性フィルターを適用
-    message_abst = auto_abst.summarize(msg[i]['content'], abst_doc, similarity_filter)
-    msg_abst = ''
-    for a in message_abst['summarize_result']:
-      msg_abst += a
-    old_msg_abst_all += msg_abst
+  make_abst_each_messages(msg[0:old_msg_count], auto_abst, abst_doc, similarity_filter)
   
-    abst_token_count += len(encoding.encode(msg_abst))
-    
-    msg[i]['content'] = msg_abst
-  
-  for i in range(old_msg_count, len(msg)):
-    abst_token_count += token_count_tbl[i]
+  # 要約後のトークン数を計測
+  new_token_count = sum(count_each_messages_token(msg))
+  # 旧いメッセージの要約の content を結合
+  old_msg_abst_text = concat_each_messages_content(msg[0:old_msg_count])
   
   
   # 旧いメッセージを要約した結果，まだトークン数が閾値を越えていたら旧いメッセージの全要約を作成
-  if abst_token_count > LIMIT_TOKEN_COUNT_TO_ABST:
+  if new_token_count  > LIMIT_TOKEN_COUNT_TO_ABST:
     # 全メッセージの場合は比較的余裕があるはずなので類似性フィルターは適用しない
     # (全メッセージのトークン数によっては類似性フィルターが必要になるかも…)
-    old_msg_abst = auto_abst.summarize(old_msg_abst_all, abst_doc)
-    msg_abst = ''
-    for a in old_msg_abst['summarize_result']:
-      msg_abst += a        
+    msg_abst = concat_abst_text( auto_abst.summarize(old_msg_abst_text, abst_doc) )
     
     # msg を旧いメッセージの全要約で初期化し，以降にオリジナルのメッセージから
     # 要約していないメッセージを結合
