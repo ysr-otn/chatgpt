@@ -23,6 +23,9 @@ from openai import OpenAI
 # OpenAI のトークン数の上限 4096 を基準に，要約処理をする閾値
 LIMIT_TOKEN_COUNT_TO_ABST = 4096 * 0.8
 
+# 要約をしない直近のメッセージの割x合
+UNABST_RATE = 0.1
+
 
 # 引数解析
 parser = argparse.ArgumentParser(description='Input comment.')
@@ -110,11 +113,15 @@ msg_orig = copy.deepcopy(msg)
 # トークン数を計測
 encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
 token_count = 0
+token_count_tbl = []
 message_all = ''
 
 for m in msg:
   message_all += m['content']
-  token_count += len(encoding.encode(m['content']))
+  t = len(encoding.encode(m['content']))
+  token_count += t
+  token_count_tbl.append(t)
+  
 
 
 # トークン数が要約をする閾値を越えていたら要約を実施
@@ -139,30 +146,40 @@ if token_count > LIMIT_TOKEN_COUNT_TO_ABST:
   similarity_filter.similarity_limit = 0.25
   
   
-  # まずは各メッセージについて要約を実施
+  # まずは先頭から old_msg_count 個のメッセージについて要約を実施
+  old_msg_count = int(len(msg) * (1 - UNABST_RATE))
   abst_token_count = 0
-  for i in range(len(msg)):
+  old_msg_abst_all = ''
+  for i in range(old_msg_count):
     # 各メッセージをできるだけ簡潔にするために類似性フィルターを適用
     message_abst = auto_abst.summarize(msg[i]['content'], abst_doc, similarity_filter)
     msg_abst = ''
     for a in message_abst['summarize_result']:
       msg_abst += a
+    old_msg_abst_all += msg_abst
   
     abst_token_count += len(encoding.encode(msg_abst))
     
     msg[i]['content'] = msg_abst
   
+  for i in range(old_msg_count, len(msg)):
+    abst_token_count += token_count_tbl[i]
   
-  # 各メッセージを要約した結果，まだトークン数が閾値を越えていたら全メッセージの要約を作成
+  
+  # 旧いメッセージを要約した結果，まだトークン数が閾値を越えていたら旧いメッセージの全要約を作成
   if abst_token_count > LIMIT_TOKEN_COUNT_TO_ABST:
     # 全メッセージの場合は比較的余裕があるはずなので類似性フィルターは適用しない
     # (全メッセージのトークン数によっては類似性フィルターが必要になるかも…)
-    all_abst = auto_abst.summarize(message_all, abst_doc)
+    old_msg_abst = auto_abst.summarize(old_msg_abst_all, abst_doc)
     msg_abst = ''
-    for a in all_abst['summarize_result']:
+    for a in old_msg_abst['summarize_result']:
       msg_abst += a        
     
+    # msg を旧いメッセージの全要約で初期化し，以降にオリジナルのメッセージから
+    # 要約していないメッセージを結合
     msg = [{'role': 'assistant', 'content': msg_abst}]
+    for i in range(old_msg_count, len(msg_orig)):
+      msg.append(msg_orig[i])
 
 
 # メッセージに，新規の質問を追加
