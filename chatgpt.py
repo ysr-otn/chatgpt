@@ -61,6 +61,53 @@ def concat_each_messages_content(msg):
   return text
 
 
+# メッセージの履歴を読み出し
+# - hist_file: 履歴ファイルのパス
+def read_message_from_history(hist_file):
+  # 履歴ファイルを読み込み
+  history=''
+
+  with open(history_path, 'r') as f:
+    history = f.read()
+  
+  # 履歴から ChatGPT へのメッセージを作成
+  msg = []
+  sel = ''
+  role = ''
+  content = ''
+  
+  for h in history.split("\n"):
+    if h == '@@@role:::':
+      if role != '' and content != '':
+        msg.append({'role': role, 'content': content.rstrip()})
+      sel = 'role'
+      role = ''
+      content = ''
+    elif h == '@@@content:::':
+      sel = 'content'
+      content = ''
+    elif sel == 'role':
+      role += h
+    elif  sel == 'content':
+      content += h + '\n'
+    
+  # メッセージに最後の履歴を追加
+  if role != '' and content != '':
+    msg.append({'role': role, 'content': content.rstrip()})
+
+  return msg
+
+# メッセージの履歴を書き込み
+# - msg: OpenAI クライアントの messages 形式のリスト
+# - hist_file: 履歴ファイルのパス
+def write_message_to_history(msg, hist_file):
+  with open(hist_file, 'w') as f:
+    for m in msg:
+      hist = '@@@role:::\n' + m['role'] + '\n' + '@@@content:::\n' + m['content'].rstrip() + '\n' + '\n'
+      f.write(hist)
+
+
+
 # 引数解析
 parser = argparse.ArgumentParser(description='Input comment.')
 parser.add_argument('input', nargs = '*')
@@ -90,14 +137,6 @@ if args.list == True:
   exit()
 
 
-# 履歴ファイルを読み込み
-history=''
-# リセットフラグが立っていない&ファイルが存在する場合履歴を読み込む
-if os.path.isfile(history_path) and not args.reset:
-  with open(history_path, 'r') as f:
-    history = f.read()
-
-
 # スペースで区切られたコメントを一つの文字列に結合
 comment = ''
 for i in args.input:
@@ -114,31 +153,12 @@ while comment == '':
 # コメントを表示
 print(comment)
 
-
-# 履歴から ChatGPT へのメッセージを作成
-msg = []
-sel = ''
-role = ''
-content = ''
-
-for h in history.split("\n"):
-  if h == '@@@role:::':
-    if role != '' and content != '':
-      msg.append({'role': role, 'content': content.rstrip()})
-    sel = 'role'
-    role = ''
-    content = ''
-  elif h == '@@@content:::':
-    sel = 'content'
-    content = ''
-  elif sel == 'role':
-    role += h
-  elif  sel == 'content':
-    content += h + '\n'
+# リセットフラグが立っていない&ファイルが存在する場合履歴を読み込む
+if os.path.isfile(history_path) and not args.reset:
+  msg = read_message_from_history(history_path)
+else:
+  msg = []
   
-# メッセージに最後の履歴を追加
-if role != '' and content != '':
-  msg.append({'role': role, 'content': content.rstrip()})
 
 # 以降では msg は要約される可能性があるので，オリジナルのメッセージを保存
 msg_orig = copy.deepcopy(msg)
@@ -217,9 +237,14 @@ print(ans)
 msg_orig.append({"role": "assistant", "content": ans})
 
 
+
+
 # 履歴を保存
 if args.no_write == False:
-  with open(history_path, 'w') as f:
-    for m in msg_orig:
-      hist = '@@@role:::\n' + m['role'] + '\n' + '@@@content:::\n' + m['content'].rstrip() + '\n' + '\n'
-      f.write(hist)
+  write_message_to_history(msg_orig, history_path)
+
+  # 要約をしていたら参考のために要約の履歴も保存
+  if token_count > LIMIT_TOKEN_COUNT_TO_ABST:
+    # メッセージに回答を追加
+    msg.append({"role": "assistant", "content": ans})
+    write_message_to_history(msg, history_path.replace('.log', '_abst.log'))
