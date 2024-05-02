@@ -28,13 +28,15 @@
 
 ;;; chatgpt のプロセスのフィルタ
 (defun chatgpt-filter (proc string)
-  ;; chatgpt-output に出力を文字列として格納する
-  (setq chatgpt-output (concat chatgpt-output string)))
+  ;; Python の RuntimeWarning を除く出力を格納
+  (if (not (string-match ": RuntimeWarning: " string))
+	  ;; chatgpt-output に出力を文字列として格納する
+	  (setq chatgpt-output (concat chatgpt-output string))))
 
 ;;; ChatGPT へのコマンドラインインタフェースを用いてバッファに結果を表示
-(defun chatgpt ()
+(defun chatgpt (arg)
   "Execute chatgpt using command line interface"
-  (interactive)
+  (interactive "p")
   ;; ~/.ChatGPT 以下のログファイルを選択(.log は省略．_abst.log は対象外)
   (setq chatgpt-log-name 
 		(completing-read "Select Logfile: " 
@@ -57,7 +59,10 @@
   (let ((user-message (read-string "Message: " nil))
 		(buffer-name (concat "*ChatGPT(" chatgpt-log-name ")*")))
 	(setq chatgpt-output "")
-	(start-process "chatgpt" buffer-name chatgpt-command "-s" chatgpt-log-name user-message)
+	;;; 引数が設定されていれば結果をファイルに保存しないよう -n オプションを追加
+	(if (eq arg 4)
+		(start-process "chatgpt" buffer-name chatgpt-command "-n" "-s" chatgpt-log-name user-message)
+	  (start-process "chatgpt" buffer-name chatgpt-command "-s" chatgpt-log-name user-message))
 	(set-process-filter (get-process "chatgpt") 'chatgpt-filter)
 	(set-process-sentinel
 	 (get-process "chatgpt")
