@@ -8,7 +8,53 @@
 - OpenAI の ChatGPT に履歴付きでコマンドラインでアクセスする python スクリプト
 
 
+* 使用方法
+
+** chatgpt.py
+
+1. 関連ライブラリとして openai, tiktoken, pysummarization, mecab-python3, unidic-lite, nltk ら
+   が必要なので事前にインストールしておく
+
+2. [[https://platform.openai.com/api-keys]] から [Create new secret key] をクリックして
+   シークレットキーを取得し，[[https://platform.openai.com/account/billing/overview]] から
+   クレジットカードの登録をして python から chatgpt が使えるようにしておく
+   - シークレットキーは環境変数 OPENAI_API_KEY に設定しておくと良い
+
+3. パスの通ったディレクトリに chatgpt.py をコピー
+
+4. ホームディレクトリにフォルダ ~/.ChatGPT を作成
+   - 以降，ログが同フォルダ以下に log-name.log の形式で格納される
+   - ChatGPT に送信するトークンが 4000 文字を越える場合は要約してから送っており，
+     最新のトークンを log-name_abst.log として保存している
+   - デフォルトのログは ~/.ChatGPT/history.log
+   - chatgpt.py に -s で渡す時は .log は省略可能
+
+5. 環境変数 OPENAI_API_KEY を Emacs 起動時に取得できない場合あ
+   .emacs に下記のようにしてシークレットキーを設定しておくと良い
+
+   #+begin_src elisp
+   (setenv "OPENAI_API_KEY" "sk-YOUR-SECRET-KEY-XXXXXXXXXXXXXXXXXXXXXXX")
+   #+end_src
+  
+
+** chatgpt.el
+
+- Emacs から M-x chatgpt で chatgpt.py を使用するインタフェース
+
+- chatgpt.el を load-path の通ったディレクトリにコピーし .emacs に下記設定を追加
+  #+begin_src elisp
+  (require 'chatgpt)    
+  #+end_src
+
+- chatgpt.py のコマンドは変数 chatgpt-command で各環境に合せて設定しておくこと
+
+
 * 変更履歴
+
+- <2024-05-02 Thu 10:31>
+  - ライセンスを MIT ライセンスに設定
+  - Emacs からのインタフェース chatgpt.el を追加
+  - README.org に [使用方法] を追加
 
 - <2024-02-12 Mon 15:31>
   - 履歴の読み出し・書き込みを関数化
@@ -25,3 +71,8 @@
 
 - <2024-02-11 Sun 10:10>
   - 新規作成
+
+
+* LICENSE
+
+MIT

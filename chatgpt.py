@@ -1,5 +1,27 @@
 #! /usr/bin/env python
 
+# MIT License
+# 
+# Copyright (c) 2024 Yoshihiro Ohtani
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 import os, argparse, re
 from os.path import dirname, basename
 import copy
@@ -150,8 +172,8 @@ while comment == '':
   comment = input()
 
 
-# コメントを表示
-print(comment)
+# コメントを表示(User のコメントであることを [U] で指定)
+print('[U]: ' + comment)
 
 # リセットフラグが立っていない&ファイルが存在する場合履歴を読み込む
 if os.path.isfile(history_path) and not args.reset:
@@ -227,10 +249,10 @@ response = client.chat.completions.create(
 )
 
 
-# 回答を取得 & 表示
+# 回答を取得 & 表示(Agent の回答であることを [A] で指定)
 ans = response.choices[0].message.content
 print('')
-print(ans)
+print('[A]: ' + ans)
 
 
 # オリジナルのメッセージに回答を追加
