@@ -28,13 +28,6 @@
      最新のトークンを log-name_abst.log として保存している
    - デフォルトのログは ~/.ChatGPT/history.log
    - chatgpt.py に -s で渡す時は .log は省略可能
-
-5. 環境変数 OPENAI_API_KEY を Emacs 起動時に取得できない場合あ
-   .emacs に下記のようにしてシークレットキーを設定しておくと良い
-
-   #+begin_src elisp
-   (setenv "OPENAI_API_KEY" "sk-YOUR-SECRET-KEY-XXXXXXXXXXXXXXXXXXXXXXX")
-   #+end_src
   
 
 ** chatgpt.el
@@ -48,6 +41,12 @@
 
 - chatgpt.py のコマンドは変数 chatgpt-command で各環境に合せて設定しておくこと
 
+- 環境変数 OPENAI_API_KEY を Emacs 起動時に取得できない場合あ
+   .emacs に下記のようにしてシークレットキーを設定しておくと良い
+
+   #+begin_src elisp
+   (setenv "OPENAI_API_KEY" "sk-YOUR-SECRET-KEY-XXXXXXXXXXXXXXXXXXXXXXX")
+   #+end_src
 
 * 変更履歴
 
