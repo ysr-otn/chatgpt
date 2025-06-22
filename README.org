@@ -5,7 +5,8 @@
 
 * 概要
 
-- OpenAI の ChatGPT に履歴付きでコマンドラインでアクセスする python スクリプト
+- OpenAI の ChatGPT に履歴付きでコマンドラインでアクセスする python スクリプトと，
+  Emacs から使うためのインタフェースの emacs-lisp ファイル
 
 
 * 使用方法
