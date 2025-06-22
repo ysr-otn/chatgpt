@@ -45,9 +45,11 @@ from openai import OpenAI
 # OpenAI のトークン数の上限 4096 を基準に，要約処理をする閾値
 LIMIT_TOKEN_COUNT_TO_ABST = 4096 * 0.8
 
-# 要約をしない直近のメッセージの割x合
+# 要約をしない直近のメッセージの割合
 UNABST_RATE = 0.1
 
+# 要約をしない直近のメッセージの最大数
+UNABST_MAX = 7
 
 # 各メッセージのトークン数をリストで返す
 # - msg: OpenAI クライアントの messages 形式のリスト
@@ -217,6 +219,9 @@ if token_count > LIMIT_TOKEN_COUNT_TO_ABST:
   
   # まずは先頭から old_msg_count 個のメッセージについて要約を実施
   old_msg_count = int(len(msg) * (1 - UNABST_RATE))
+  if old_msg_count < len(msg) - UNABST_MAX:
+    old_msg_count = len(msg) - UNABST_MAX
+  
   make_abst_each_messages(msg[0:old_msg_count], auto_abst, abst_doc, similarity_filter)
   
   # 要約後のトークン数を計測
