@@ -105,7 +105,7 @@
 		  ;;[U]: の入力プロンプト発見
 		  (if start
 			  ;; 入力プロンプトからユーザのメッセージを取得
-			  (let* ((user-message (replace-regexp-in-string "\[U\]: " "" (buffer-substring start (point-max)))))
+			  (let* ((user-message (replace-regexp-in-string "\\[U\\]: " "" (buffer-substring start (point-max)))))
 				(setq chatgpt-log-name (replace-regexp-in-string "\)\\*" "" (replace-regexp-in-string "\\*ChatGPT\(" "" buf-name)))
 				(end-of-buffer)
 				(newline)

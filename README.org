@@ -64,6 +64,10 @@
 
 * 変更履歴
 
+- <2025-06-22 Sun 22:43>
+  - chatgpt.el の chatgpt-get-new-input-and-output-to-chatgpt-buffer から実行した時に
+    ユーザのメッセージに誤って '[U]: ' が付いていたのを修正
+
 - <2025-06-22 Sun 18:19>
   - chatgpt.py にユーザメッセージを表示しないオプション -c, --without-output-comment を追加
   - chatgpt.el に chatgpt-create-new-input-prompt, chatgpt-get-new-input-and-output-to-chatgpt-buffer
