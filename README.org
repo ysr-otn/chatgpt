@@ -49,15 +49,15 @@
    #+end_src
 
 - M-x chatgpt でログファイルを指定して chatgpt.py を実行し結果をログファイルに保存するが，
-  C-u オプション付きで事項するとログファイルから過去の履歴は参照するが結果はログファイルに
+  C-u オプション付きで実行するとログファイルから過去の履歴は参照するが結果はログファイルに
   保存しない
 
-- M-x chatgpt-create-new-input-prompt で ChatGPT 用のバッファ ~*ChatGTP(XXX)*~ に新しい
-  ユーザメッセージのプロンプトを生成
+- ChatGPT 用のバッファ ~*ChatGTP(XXX)*~ で M-x chatgpt-create-new-input-prompt を実行すると
+  新しいユーザメッセージのプロンプトをそのバッファの末尾に生成する
   
-- M-x chatgpt-get-new-input-and-output-to-chatgpt-buffer で chatgpt-create-new-input-prompt で
-  生成したプロンプトに入力されたユーザメッセージを用いて chatgpt.py に結果を表示．
-  C-u オプションの機能は chatgpt と同じ．
+- その状態で M-x chatgpt-get-new-input-and-output-to-chatgpt-buffer を実行すると
+  chatgpt-create-new-input-prompt で生成したプロンプトに入力されたユーザメッセージを用いて
+  chatgpt.py に結果を表示する．(C-u オプションの機能は chatgpt と同じ)
 
 
 
