@@ -66,7 +66,7 @@
 - <2025-06-22 Sun 18:19>
   - chatgpt.py にユーザメッセージを表示しないオプション -c, --without-output-comment を追加
   - chatgpt.el に chatgpt-create-new-input-prompt, chatgpt-get-new-input-and-output-to-chatgpt-buffer
-	を追加
+    を追加
 
 - <2024-05-02 Thu 16:26>
   - chatgpt.el に Python の RuntimeWarning の文字列を結果出力から除く対応を追加
