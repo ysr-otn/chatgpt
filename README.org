@@ -52,7 +52,21 @@
   C-u オプション付きで事項するとログファイルから過去の履歴は参照するが結果はログファイルに
   保存しない
 
+- M-x chatgpt-create-new-input-prompt で ChatGPT 用のバッファ ~*ChatGTP(XXX)*~ に新しい
+  ユーザメッセージのプロンプトを生成
+  
+- M-x chatgpt-get-new-input-and-output-to-chatgpt-buffer で chatgpt-create-new-input-prompt で
+  生成したプロンプトに入力されたユーザメッセージを用いて chatgpt.py に結果を表示．
+  C-u オプションの機能は chatgpt と同じ．
+
+
+
 * 変更履歴
+
+- <2025-06-22 Sun 18:19>
+  - chatgpt.py にユーザメッセージを表示しないオプション -c, --without-output-comment を追加
+  - chatgpt.el に chatgpt-create-new-input-prompt, chatgpt-get-new-input-and-output-to-chatgpt-buffer
+	を追加
 
 - <2024-05-02 Thu 16:26>
   - chatgpt.el に Python の RuntimeWarning の文字列を結果出力から除く対応を追加

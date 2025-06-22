@@ -33,6 +33,7 @@
 	  ;; chatgpt-output に出力を文字列として格納する
 	  (setq chatgpt-output (concat chatgpt-output string))))
 
+
 ;;; ChatGPT へのコマンドラインインタフェースを用いてバッファに結果を表示
 (defun chatgpt (arg)
   "Execute chatgpt using command line interface"
@@ -57,22 +58,67 @@
 						 ))
   ;;; chatgpt.py を実行し *ChatGTP(log-name)* バッファに結果を表示
   (let ((user-message (read-string "Message: " nil))
-		(buffer-name (concat "*ChatGPT(" chatgpt-log-name ")*")))
+		(buf-name (concat "*ChatGPT(" chatgpt-log-name ")*")))
 	(setq chatgpt-output "")
 	;;; 引数が設定されていれば結果をファイルに保存しないよう -n オプションを追加
 	(if (eq arg 4)
-		(start-process "chatgpt" buffer-name chatgpt-command "-n" "-s" chatgpt-log-name user-message)
-	  (start-process "chatgpt" buffer-name chatgpt-command "-s" chatgpt-log-name user-message))
+		(start-process "chatgpt" buf-name chatgpt-command "-n" "-s" chatgpt-log-name user-message)
+	  (start-process "chatgpt" buf-name chatgpt-command "-s" chatgpt-log-name user-message))
 	(set-process-filter (get-process "chatgpt") 'chatgpt-filter)
 	(set-process-sentinel
 	 (get-process "chatgpt")
 	 (lambda (p e)
 	   (progn
+		 (switch-to-buffer (concat "*ChatGPT(" chatgpt-log-name ")*"))
 		 (end-of-buffer)
 		 (newline)
 		 (insert "----------------------------------------------------------------\n")
 		 (end-of-buffer)
 		 (insert chatgpt-output))))	
-	(switch-to-buffer buffer-name)))
+	(switch-to-buffer buf-name)))
+
+
+;;; ChatGPT 用のバッファに新しいユーザメッセージの入力プロンプトを作成
+(defun chatgpt-create-new-input-prompt ()
+  (interactive)
+  (if (string-match "\*ChatGPT\(.*\)\*" (buffer-name))
+	  (progn
+		(end-of-buffer)
+		(newline)
+		(insert "\n----------------------------------------------------------------\n[U]: ")
+		(end-of-buffer))
+	(message "Execute chatgpt-create-new-input command in the buffer of ChatGPT")))
+
+;;; chatgpt-create-new-input-prompt で作成したプロンプトに入力されたユーザメッセージを取得し，
+;;; ChatGPT へのコマンドラインインタフェースを用いてバッファに結果を表示
+(defun chatgpt-get-new-input-and-output-to-chatgpt-buffer (arg)
+  (interactive "p")
+  (if (string-match "\*ChatGPT\(.*\)\*" (buffer-name))
+	  (progn
+		(goto-char (point-max))
+		(let ((start (search-backward-regexp "^\\[U\\]:" nil t))
+			  (end (point-max))
+			  (buf-name (buffer-name)))
+		  (if start
+			  (let* ((user-message (replace-regexp-in-string "\[U\]: " "" (buffer-substring start (point-max)))))
+				(setq chatgpt-log-name (replace-regexp-in-string "\)\\*" "" (replace-regexp-in-string "\\*ChatGPT\(" "" buf-name)))
+				(end-of-buffer)
+				(newline)
+				(setq chatgpt-user-message user-message)
+				(setq chatgpt-output "")
+				(if (eq arg 4)
+					(start-process "chatgpt" buf-name chatgpt-command "-c" "-n" "-s" chatgpt-log-name user-message)
+				  (start-process "chatgpt" buf-name chatgpt-command "-c" "-s" chatgpt-log-name user-message))
+				(set-process-filter (get-process "chatgpt") 'chatgpt-filter)
+				(set-process-sentinel
+				 (get-process "chatgpt")
+				 (lambda (p e)
+				   (progn
+					 (switch-to-buffer (concat "*ChatGPT(" chatgpt-log-name ")*"))
+					 (end-of-buffer)
+					 (insert chatgpt-output))))	
+				(switch-to-buffer buf-name))
+			(message "Insert ChatGPT user message using chatgpt-create-new-input"))))))
+
 
 (provide 'chatgpt)

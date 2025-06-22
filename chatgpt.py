@@ -133,6 +133,7 @@ def write_message_to_history(msg, hist_file):
 # 引数解析
 parser = argparse.ArgumentParser(description='Input comment.')
 parser.add_argument('input', nargs = '*')
+parser.add_argument('-c', '--without-output-comment', action='store_true', help='Output the result without comment that user inputted.')
 parser.add_argument('-r', '--reset', action='store_true', help='Execute with reset chat log history.')
 parser.add_argument('-s', '--select', help='Select chat log history file.')
 parser.add_argument('-l', '--list', action='store_true', help='List chat log history files.')
@@ -172,8 +173,10 @@ while comment == '':
   comment = input()
 
 
-# コメントを表示(User のコメントであることを [U] で指定)
-print('[U]: ' + comment)
+# コメント非表示でなければコメントを表示
+if args.without_output_comment == False:
+  # コメントを表示(User のコメントであることを [U] で指定)
+  print('[U]: ' + comment)
 
 # リセットフラグが立っていない&ファイルが存在する場合履歴を読み込む
 if os.path.isfile(history_path) and not args.reset:
